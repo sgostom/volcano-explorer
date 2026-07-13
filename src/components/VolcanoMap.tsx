@@ -6,10 +6,15 @@ import { formatYear } from '../utils/format'
 interface Props {
   volcanoes: Volcano[]
   selected: Volcano | null
+  filtersActive: boolean
+  searchTerm: string
   onSelect: (volcano: Volcano) => void
 }
 
 const SATELLITE_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'
+const DEFAULT_CENTER: [number, number] = [5, 15]
+const DEFAULT_ZOOM = 2
+const SEARCH_CAMERA_DEBOUNCE_MS = 450
 
 const SATELLITE_STYLE: StyleSpecification = {
   version: 8,
@@ -133,20 +138,76 @@ function ensureVolcanoLayers(
   }
 }
 
-export function VolcanoMap({ volcanoes, selected, onSelect }: Props) {
+function getVolcanoBounds(volcanoes: Volcano[]) {
+  const longitudes = volcanoes.map((volcano) => volcano.longitude).sort((a, b) => a - b)
+  let largestGap = -1
+  let startIndex = 0
+
+  for (let index = 0; index < longitudes.length; index += 1) {
+    const current = longitudes[index]
+    const next = index === longitudes.length - 1 ? longitudes[0] + 360 : longitudes[index + 1]
+    const gap = next - current
+    if (gap > largestGap) {
+      largestGap = gap
+      startIndex = (index + 1) % longitudes.length
+    }
+  }
+
+  const west = longitudes[startIndex]
+  const bounds = new maplibregl.LngLatBounds()
+  volcanoes.forEach((volcano) => {
+    const longitude = volcano.longitude < west ? volcano.longitude + 360 : volcano.longitude
+    bounds.extend([longitude, volcano.latitude])
+  })
+  return bounds
+}
+
+function updateViewport(map: maplibregl.Map, volcanoes: Volcano[], filtersActive: boolean, animate = true) {
+  const duration = animate ? 850 : 0
+
+  if (!filtersActive) {
+    map.easeTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM, bearing: 0, pitch: 0, duration })
+    return
+  }
+
+  if (volcanoes.length === 1) {
+    map.flyTo({
+      center: [volcanoes[0].longitude, volcanoes[0].latitude],
+      zoom: 5.5,
+      bearing: 0,
+      pitch: 0,
+      duration,
+    })
+    return
+  }
+
+  if (volcanoes.length > 1) {
+    map.fitBounds(getVolcanoBounds(volcanoes), {
+      padding: { top: 85, right: 70, bottom: 85, left: 70 },
+      maxZoom: 5.5,
+      duration,
+    })
+  }
+}
+
+export function VolcanoMap({ volcanoes, selected, filtersActive, searchTerm, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const volcanoesRef = useRef(volcanoes)
+  const filtersActiveRef = useRef(filtersActive)
   const onSelectRef = useRef(onSelect)
   const popupRef = useRef<maplibregl.Popup | null>(null)
 
   volcanoesRef.current = volcanoes
+  filtersActiveRef.current = filtersActive
   onSelectRef.current = onSelect
 
   const data = useMemo(
     () => volcanoFeatureCollection(volcanoes, selected?.number ?? null),
     [selected?.number, volcanoes],
   )
+  const dataRef = useRef(data)
+  dataRef.current = data
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -154,9 +215,9 @@ export function VolcanoMap({ volcanoes, selected, onSelect }: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: SATELLITE_STYLE,
-      center: [5, 15],
-      zoom: 0.7,
-      minZoom: 0,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      minZoom: DEFAULT_ZOOM,
       maxZoom: 9,
       renderWorldCopies: false,
       attributionControl: false,
@@ -169,7 +230,8 @@ export function VolcanoMap({ volcanoes, selected, onSelect }: Props) {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
     const restoreLayers = () => {
-      ensureVolcanoLayers(map, volcanoFeatureCollection(volcanoesRef.current, null))
+      ensureVolcanoLayers(map, dataRef.current)
+      updateViewport(map, volcanoesRef.current, filtersActiveRef.current, false)
     }
     map.on('load', restoreLayers)
     map.on('style.load', restoreLayers)
@@ -227,6 +289,18 @@ export function VolcanoMap({ volcanoes, selected, onSelect }: Props) {
 
   useEffect(() => {
     const map = mapRef.current
+    if (!map) return
+
+    const delay = searchTerm.trim() ? SEARCH_CAMERA_DEBOUNCE_MS : 0
+    const timeout = window.setTimeout(() => {
+      updateViewport(map, volcanoes, filtersActive)
+    }, delay)
+
+    return () => window.clearTimeout(timeout)
+  }, [filtersActive, searchTerm, volcanoes])
+
+  useEffect(() => {
+    const map = mapRef.current
     if (!map || !selected) return
     map.flyTo({
       center: [selected.longitude, selected.latitude],
@@ -240,7 +314,7 @@ export function VolcanoMap({ volcanoes, selected, onSelect }: Props) {
       <div ref={containerRef} className="map" />
       <div className="map-title">
         <span>GLOB · WULKANY HOLOCEŃSKIE</span>
-        <b>{volcanoes.length.toLocaleString('pl-PL')} widocznych</b>
+        <b>{volcanoes.length.toLocaleString('pl-PL')} {volcanoes.length === 1 ? 'widoczny' : 'widocznych'}</b>
       </div>
       <div className="map-legend" aria-label="Legenda mapy">
         <span><i className="dot dot--report" /> W raporcie</span>
