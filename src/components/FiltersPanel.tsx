@@ -53,8 +53,8 @@ export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobi
         {isFiltered && <button onClick={() => setFilters(EMPTY_FILTERS)}><RotateCcw size={14} /> Wyczyść</button>}
       </div>
       <div className="filter-note">
-        <span>ŹRÓDŁO DANYCH</span>
-        <p>Smithsonian Global Volcanism Program · dane ładowane przy uruchomieniu, wyłącznie w pamięci.</p>
+        <span>ŹRÓDŁA</span>
+        <p>Dane wulkanologiczne: Smithsonian GVP. Podkład satelitarny: EOxCloudless / Copernicus Sentinel-2. Dane aplikacji pozostają wyłącznie w pamięci.</p>
       </div>
     </aside>
   )
