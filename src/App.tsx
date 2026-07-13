@@ -1,5 +1,5 @@
 import { AlertTriangle, Database, Filter, Flame, RefreshCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiltersPanel, EMPTY_FILTERS, type Filters } from './components/FiltersPanel'
 import { ReportsPanel } from './components/ReportsPanel'
 import { VolcanoDetails } from './components/VolcanoDetails'
@@ -46,6 +46,12 @@ export default function App() {
     )
   }, [explorer.data, filters])
 
+  const filtersActive = Object.values(filters).some(Boolean)
+
+  useEffect(() => {
+    setSelected(null)
+  }, [filters])
+
   if (explorer.status === 'loading') return <LoadingState />
   if (explorer.status === 'error') return <ErrorState message={explorer.error} retry={explorer.retry} />
 
@@ -64,7 +70,7 @@ export default function App() {
       <div className="workspace">
         <FiltersPanel volcanoes={data.volcanoes} filters={filters} setFilters={setFilters} resultCount={filtered.length} mobileOpen={mobileFilters} onClose={() => setMobileFilters(false)} />
         <main className="map-column">
-          {filtered.length > 0 ? <VolcanoMap volcanoes={filtered} selected={selected} onSelect={selectVolcano} /> : <div className="map-empty"><span>0</span><h2>Brak wulkanów dla tych filtrów</h2><p>Zmień kryteria lub wyczyść filtry, aby wrócić do pełnego katalogu.</p><button onClick={() => setFilters(EMPTY_FILTERS)}>Wyczyść filtry</button></div>}
+          {filtered.length > 0 ? <VolcanoMap volcanoes={filtered} selected={selected} filtersActive={filtersActive} searchTerm={filters.search} onSelect={selectVolcano} /> : <div className="map-empty"><span>0</span><h2>Brak wulkanów dla tych filtrów</h2><p>Zmień kryteria lub wyczyść filtry, aby wrócić do pełnego katalogu.</p><button onClick={() => setFilters(EMPTY_FILTERS)}>Wyczyść filtry</button></div>}
         </main>
         <ReportsPanel reports={data.reports} publishedAt={data.feedPublishedAt} onSelectVolcano={selectVolcano} volcanoesByNumber={volcanoesByNumber} />
         {selected && <><div className="drawer-scrim" onClick={() => setSelected(null)} /><VolcanoDetails key={selected.number} volcano={selected} onClose={() => setSelected(null)} /></>}
