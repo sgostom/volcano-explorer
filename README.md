@@ -40,7 +40,7 @@ The project follows Semantic Versioning and uses Release Please to maintain the 
 - A `BREAKING CHANGE:` footer or `!` after the commit type creates a major release, such as `1.0.0` to `2.0.0`.
 - Other Conventional Commit types can appear in the changelog but do not independently trigger a release.
 
-Release Please opens or updates a release pull request after qualifying commits reach `main`. Rebase-merging that release pull request creates the version tag and GitHub Release. The repository permits only rebase merging for pull requests, keeping the `main` history linear and preserving each Conventional Commit for version calculation.
+Release Please opens or updates a release pull request after qualifying commits reach `main`. The release workflow marks its required `ci` status as pending, enables native GitHub auto-merge, and validates the release candidate. After the tests and production build pass, the successful status lets GitHub squash-merge the release PR and Release Please creates the version tag and GitHub Release. The repository permits only squash merging and requires pull requests for all changes to `main`.
 
 ## Verification
 
