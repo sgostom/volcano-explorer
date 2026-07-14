@@ -31,7 +31,10 @@ a { color: inherit; }
 .brand > div span { font: 16px/1.1 Georgia, serif; color: var(--ember-soft); letter-spacing: .18em; }
 .dataset-status { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
 .dataset-status i { width: 7px; height: 7px; border-radius: 50%; background: #77b66b; box-shadow: 0 0 0 4px rgba(119,182,107,.1); }
-.topbar nav { margin-left: auto; display: flex; align-items: center; gap: 24px; font-size: 11px; color: #85857f; text-transform: uppercase; letter-spacing: .1em; }
+.language-switch { margin-left: auto; display: flex; padding: 2px; border: 1px solid var(--line); border-radius: 4px; background: #0c0d0d; }
+.language-switch button { min-width: 30px; height: 25px; padding: 0 6px; border: 0; border-radius: 2px; background: transparent; color: #777872; font-size: 9px; letter-spacing: .08em; cursor: pointer; }
+.language-switch button[aria-pressed="true"] { background: rgba(211,161,95,.07); color: var(--gold); font-weight: 800; }
+.topbar nav { display: flex; align-items: center; gap: 24px; font-size: 11px; color: #85857f; text-transform: uppercase; letter-spacing: .1em; }
 .topbar nav a { text-decoration: none; color: #c7c0b5; }
 .topbar nav a:hover { color: var(--ember-soft); }
 .mobile-filter-button { display: none; background: #202220; border: 1px solid var(--line); padding: 8px 12px; border-radius: 5px; align-items: center; gap: 7px; }
@@ -206,7 +209,8 @@ a { color: inherit; }
   .brand strong { font-size: 10px; }
   .brand > div span { font-size: 13px; }
   .dataset-status, .topbar nav { display: none; }
-  .mobile-filter-button { margin-left: auto; display: flex; }
+  .language-switch { margin-left: auto; }
+  .mobile-filter-button { display: flex; }
   .workspace { display: block; min-height: 0; }
   .map-column { height: calc(100vh - 60px); min-height: 530px; }
   .filters-panel { position: fixed; inset: 60px 0 0; z-index: 1200; width: min(340px, 88vw); transform: translateX(-102%); transition: transform .22s ease; box-shadow: 22px 0 60px rgba(0,0,0,.55); overflow: auto; }

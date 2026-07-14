@@ -1,4 +1,5 @@
 import type { WeeklyFeed, WeeklyReport } from '../models/smithsonian'
+import { ExplorerError } from '../models/errors'
 import { asFiniteNumber } from './primitives'
 
 function text(element: Element | null, selector: string): string {
@@ -6,10 +7,10 @@ function text(element: Element | null, selector: string): string {
 }
 
 function firstLineMatch(title: string): { name: string; country: string | null; range: string | null; activity: string | null } {
-  // Separatory części tytułu mają otaczające spacje; łącznik w zakresie dat (np. 2 July-8 July) ich nie ma.
+  // Title section separators have surrounding spaces; date-range hyphens (for example, 2 July-8 July) do not.
   const match = title.match(/^(.+?)\s+\((.+?)\)\s+[-–]\s+Report for\s+(.+?)\s+[-–]\s+(.+)$/i)
   if (!match) {
-    return { name: title.split(' - ')[0]?.trim() || 'Nieznany wulkan', country: null, range: null, activity: null }
+    return { name: title.split(' - ')[0]?.trim() || '', country: null, range: null, activity: null }
   }
   return { name: match[1].trim(), country: match[2].trim(), range: match[3].trim(), activity: match[4].trim() }
 }
@@ -66,9 +67,9 @@ function normalizeItem(item: Element, index: number): WeeklyReport {
 
 export function normalizeRss(xml: string): WeeklyFeed {
   const document = new DOMParser().parseFromString(xml, 'application/xml')
-  if (document.querySelector('parsererror')) throw new Error('Nieprawidłowy dokument RSS')
+  if (document.querySelector('parsererror')) throw new ExplorerError('invalidRss')
   const channel = document.querySelector('channel')
-  if (!channel) throw new Error('Brak kanału RSS')
+  if (!channel) throw new ExplorerError('missingRssChannel')
 
   return {
     title: text(channel, ':scope > title'),

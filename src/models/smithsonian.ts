@@ -18,7 +18,7 @@ export interface WfsFeatureCollection<TProperties> {
   features: Array<WfsFeature<TProperties>>
 }
 
-// Nazwy pól odpowiadają bieżącej odpowiedzi Smithsonian WFS.
+// Field names match the current Smithsonian WFS response.
 export interface RawVolcanoProperties {
   Volcano_Number: unknown
   Volcano_Name: unknown

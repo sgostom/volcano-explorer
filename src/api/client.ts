@@ -1,11 +1,6 @@
-const DEFAULT_TIMEOUT_MS = 30_000
+import { ExplorerError } from '../models/errors'
 
-export class ApiError extends Error {
-  constructor(message: string, public readonly status?: number) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+const DEFAULT_TIMEOUT_MS = 30_000
 
 async function request(url: string): Promise<Response> {
   const controller = new AbortController()
@@ -18,15 +13,15 @@ async function request(url: string): Promise<Response> {
       headers: { Accept: 'application/json, application/rss+xml, application/xml, text/xml' },
     })
     if (!response.ok) {
-      throw new ApiError(`Źródło Smithsonian zwróciło błąd HTTP ${response.status}.`, response.status)
+      throw new ExplorerError('http', { status: response.status })
     }
     return response
   } catch (error) {
-    if (error instanceof ApiError) throw error
+    if (error instanceof ExplorerError) throw error
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiError('Przekroczono czas oczekiwania na dane Smithsonian.')
+      throw new ExplorerError('timeout')
     }
-    throw new ApiError('Nie udało się połączyć ze źródłem Smithsonian.')
+    throw new ExplorerError('network')
   } finally {
     window.clearTimeout(timeout)
   }
@@ -37,7 +32,7 @@ export async function getJson<T>(url: string): Promise<T> {
   try {
     return (await response.json()) as T
   } catch {
-    throw new ApiError('Smithsonian zwrócił nieprawidłowy dokument GeoJSON.')
+    throw new ExplorerError('invalidGeoJson')
   }
 }
 

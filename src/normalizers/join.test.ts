@@ -15,18 +15,18 @@ const report = (gvpNumber: number | null, name: string): WeeklyReport => ({
   latitude: null, longitude: null, matchedVolcanoNumber: null, matchMethod: null,
 })
 
-describe('łączenie rekordów Smithsonian', () => {
-  it('preferuje numer GVP nad nazwą', () => {
+describe('joining Smithsonian records', () => {
+  it('prefers the GVP number over the name', () => {
     const result = joinSmithsonianData([volcano(211060, 'Etna')], [], [report(211060, 'Inna nazwa')])
     expect(result.reports[0]).toMatchObject({ matchedVolcanoNumber: 211060, matchMethod: 'gvp-number' })
   })
 
-  it('ostrożnie dopasowuje jednoznaczną nazwę znormalizowaną', () => {
+  it('carefully matches an unambiguous normalized name', () => {
     const result = joinSmithsonianData([volcano(1, 'Mount Café')], [], [report(null, 'Cafe volcano')])
     expect(result.reports[0]).toMatchObject({ matchedVolcanoNumber: 1, matchMethod: 'normalized-name' })
   })
 
-  it('nie dopasowuje nazwy niejednoznacznej', () => {
+  it('does not match an ambiguous name', () => {
     const result = joinSmithsonianData([volcano(1, 'Alpha'), volcano(2, 'Alpha volcano')], [], [report(null, 'Alpha')])
     expect(result.reports[0].matchedVolcanoNumber).toBeNull()
   })
