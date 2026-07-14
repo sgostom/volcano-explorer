@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "pnpm fetch:smithsonian && tsc -b && vite build --base=/volcano-explorer/",
+    "fetch:smithsonian": "node scripts/fetch-smithsonian-data.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

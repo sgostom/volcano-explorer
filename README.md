@@ -1,6 +1,6 @@
 # Global Volcano Explorer
 
-Responsive React + TypeScript application based on current volcanological data from the Smithsonian Global Volcanism Program. On startup, it fetches two WFS GeoJSON datasets and the Weekly Volcano RSS feed. The data remains only in the browser's memory—the application does not use a database, `localStorage`, a Service Worker, or persistent caching.
+Responsive React + TypeScript application based on current volcanological data from the Smithsonian Global Volcanism Program. During local development, it fetches two WFS GeoJSON datasets and the Weekly Volcano RSS feed through the Vite proxy. The GitHub Pages deployment loads a same-origin Smithsonian snapshot generated weekly by GitHub Actions. After loading, application state remains only in the browser's memory—the application does not use a database, `localStorage`, or a Service Worker.
 
 The interactive map uses MapLibre GL JS with globe projection and the Sentinel-2 Cloudless 2020 satellite layer provided by EOX. All volcano, eruption, and activity-report records continue to come exclusively from Smithsonian GVP.
 
@@ -11,7 +11,17 @@ pnpm install
 pnpm dev
 ```
 
-Vite provides a same-origin `/smithsonian/*` proxy because the Smithsonian sources do not expose consistent CORS headers for direct browser requests. The proxy neither stores nor transforms the data; it forwards requests exclusively to the specified `volcano.si.edu` and `webservices.volcano.si.edu` endpoints. For a static deployment, these two routes must be mapped by the hosting layer.
+Vite provides a same-origin `/smithsonian/*` proxy because the Smithsonian sources do not expose consistent CORS headers for direct browser requests. The proxy neither stores nor transforms the data; it forwards requests exclusively to the specified `volcano.si.edu` and `webservices.volcano.si.edu` endpoints.
+
+## GitHub Pages deployment
+
+The `Deploy GitHub Pages` workflow downloads and validates the three Smithsonian sources, runs the tests, builds the application, and deploys the result. It runs after pushes to `main`, can be started manually, and refreshes the snapshot every Monday at 03:17 UTC. If downloading, validation, testing, or building fails, the deployment job does not run and the previously published site remains available.
+
+The generated snapshot is included only in the Pages artifact and is ignored by Git. Its manifest records the retrieval time and exact Smithsonian source URLs; the interface displays that retrieval time. Build the Pages version locally with:
+
+```bash
+pnpm build:pages
+```
 
 ## Satellite basemap
 

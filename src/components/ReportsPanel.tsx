@@ -7,11 +7,12 @@ import { REPORT_SOURCE_URL } from '../api/reports'
 interface Props {
   reports: WeeklyReport[]
   publishedAt: string | null
+  snapshotFetchedAt: string | null
   onSelectVolcano: (volcano: Volcano) => void
   volcanoesByNumber: Map<number, Volcano>
 }
 
-export function ReportsPanel({ reports, publishedAt, onSelectVolcano, volcanoesByNumber }: Props) {
+export function ReportsPanel({ reports, publishedAt, snapshotFetchedAt, onSelectVolcano, volcanoesByNumber }: Props) {
   const { locale, t } = useI18n()
   return (
     <aside className="reports-panel" aria-label={t('reports.aria')}>
@@ -19,6 +20,7 @@ export function ReportsPanel({ reports, publishedAt, onSelectVolcano, volcanoesB
         <div className="eyebrow"><Radio size={14} /> {t('reports.bulletin')}</div>
         <h2>{t('reports.title')}</h2>
         <p><Clock3 size={13} /> {t('reports.updated', { date: formatPublished(publishedAt, locale) })}</p>
+        {snapshotFetchedAt && <p><Clock3 size={13} /> {t('reports.snapshot', { date: formatPublished(snapshotFetchedAt, locale) })}</p>}
       </div>
       <div className="coverage-note">
         <Activity size={18} />
