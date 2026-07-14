@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
   statuses: write
@@ -120,3 +121,31 @@ jobs:
           if [[ "${state}" != "success" ]]; then
             exit 1
           fi
+      - name: Continue after automatic merge
+        if: steps.release-pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
+        run: |
+          for attempt in {1..30}; do
+            pr="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json state,mergeCommit)"
+            state="$(jq -r .state <<< "${pr}")"
+            merge_sha="$(jq -r '.mergeCommit.oid // empty' <<< "${pr}")"
+
+            if [[ "${state}" == "MERGED" && -n "${merge_sha}" ]]; then
+              main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+              behind_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${merge_sha}...${main_sha}" --jq .behind_by)"
+
+              if [[ "${behind_by}" == "0" ]]; then
+                gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main
+                gh workflow run deploy-pages.yml --repo "${GITHUB_REPOSITORY}" --ref main
+                exit 0
+              fi
+            fi
+
+            echo "Waiting for automatic release merge (attempt ${attempt}/30)"
+            sleep 2
+          done
+
+          echo "Automatic release merge did not complete" >&2
+          exit 1
