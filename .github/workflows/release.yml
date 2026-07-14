@@ -22,9 +22,15 @@ jobs:
         id: release-pr
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
         run: |
-          release_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --label "autorelease: pending" --limit 1 --json number)"
-          number="$(jq -r '.[0].number // empty' <<< "${release_pr}")"
+          number="$(jq -r '.[0].number // empty' <<< "${RELEASE_PRS:-[]}")"
+
+          if [[ -z "${number}" ]]; then
+            release_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --label "autorelease: pending" --limit 1 --json number)"
+            number="$(jq -r '.[0].number // empty' <<< "${release_pr}")"
+          fi
+
           echo "number=${number}" >> "${GITHUB_OUTPUT}"
       - name: Update release branch
         if: steps.release-pr.outputs.number != ''
