@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchEruptions } from '../api/eruptions'
 import { fetchWeeklyReports } from '../api/reports'
+import { fetchSnapshotTimestamp } from '../api/snapshot'
 import { fetchVolcanoes } from '../api/volcanoes'
 import type { ExplorerData } from '../models/smithsonian'
 import { ExplorerError, type ExplorerErrorCode } from '../models/errors'
@@ -19,10 +20,11 @@ export function useExplorerData() {
   const load = useCallback(async () => {
     setState({ status: 'loading', data: null, error: null })
     try {
-      const [volcanoCollection, eruptionCollection, reportXml] = await Promise.all([
+      const [volcanoCollection, eruptionCollection, reportXml, snapshotFetchedAt] = await Promise.all([
         fetchVolcanoes(),
         fetchEruptions(),
         fetchWeeklyReports(),
+        fetchSnapshotTimestamp(),
       ])
       const feed = normalizeRss(reportXml)
       const joined = joinSmithsonianData(
@@ -39,6 +41,7 @@ export function useExplorerData() {
           feedTitle: feed.title,
           feedDescription: feed.description,
           feedPublishedAt: feed.publishedAt,
+          snapshotFetchedAt,
         },
       })
     } catch (error) {

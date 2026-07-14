@@ -147,4 +147,5 @@ export interface ExplorerData {
   feedTitle: string
   feedDescription: string
   feedPublishedAt: string | null
+  snapshotFetchedAt: string | null
 }
