@@ -38,8 +38,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.release-pr.outputs.number }}
         run: |
-          sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
-          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          base_sha="${GITHUB_SHA}"
+
+          for attempt in {1..30}; do
+            sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
+            behind_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${base_sha}...${sha}" --jq .behind_by)"
+
+            if [[ "${behind_by}" == "0" ]]; then
+              sleep 2
+              stable_sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
+
+              if [[ "${stable_sha}" == "${sha}" ]]; then
+                echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+                exit 0
+              fi
+            fi
+
+            echo "Waiting for release branch update (attempt ${attempt}/30)"
+            sleep 2
+          done
+
+          echo "Release branch did not become current and stable" >&2
+          exit 1
       - name: Mark release validation as pending
         if: steps.release-pr.outputs.number != ''
         env:
@@ -82,6 +102,21 @@ jobs:
         if: always() && steps.release-pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.release-head.outputs.sha }}
+          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
+          TESTED_SHA: ${{ steps.release-head.outputs.sha }}
           VALIDATION_STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
-        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -f state="${VALIDATION_STATE}" -f context=ci -f description="Release validation ${VALIDATION_STATE}"
+        run: |
+          current_sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
+          state="${VALIDATION_STATE}"
+          description="Release validation ${state}"
+
+          if [[ -z "${TESTED_SHA}" || "${current_sha}" != "${TESTED_SHA}" ]]; then
+            state="failure"
+            description="Release head changed during validation"
+          fi
+
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${current_sha}" -f state="${state}" -f context=ci -f description="${description}"
+
+          if [[ "${state}" != "success" ]]; then
+            exit 1
+          fi
