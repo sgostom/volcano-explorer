@@ -31,6 +31,17 @@ The satellite imagery is provided by [EOxCloudless](https://cloudless.eox.at/) a
 
 The interface supports Polish and English through a typed in-memory translation catalog. The initial language follows the browser preference and can be changed from the header. The selection is not persisted in `localStorage` or any other cache.
 
+## Versioning and releases
+
+The project follows Semantic Versioning and uses Release Please to maintain the version in `package.json`, generate `CHANGELOG.md`, create version tags, and publish GitHub Releases. Commits merged into `main` determine the next version:
+
+- `fix:` creates a patch release, such as `1.0.0` to `1.0.1`.
+- `feat:` creates a minor release, such as `1.0.0` to `1.1.0`.
+- A `BREAKING CHANGE:` footer or `!` after the commit type creates a major release, such as `1.0.0` to `2.0.0`.
+- Other Conventional Commit types can appear in the changelog but do not independently trigger a release.
+
+Release Please opens or updates a release pull request after qualifying commits reach `main`. Rebase-merging that release pull request creates the version tag and GitHub Release. The repository permits only rebase merging for pull requests, keeping the `main` history linear and preserving each Conventional Commit for version calculation.
+
 ## Verification
 
 ```bash
