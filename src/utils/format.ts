@@ -1,19 +1,22 @@
 import type { Eruption, EruptionDateParts } from '../models/smithsonian'
+import { translate, type Locale } from '../i18n'
 
-const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
+const intlLocales: Record<Locale, string> = { pl: 'pl-PL', en: 'en-US' }
 
-export function formatYear(year: number | null): string {
-  if (year === null) return 'Nieznany'
-  return year < 0 ? `${Math.abs(year)} p.n.e.` : `${year}`
+export function formatYear(year: number | null, locale: Locale): string {
+  if (year === null) return translate(locale, 'common.unknown')
+  return year < 0 ? translate(locale, 'format.bce', { year: Math.abs(year) }) : `${year}`
 }
 
-export function formatEruptionDate(date: EruptionDateParts): string {
-  if (date.year === null) return 'Nie określono'
-  const year = formatYear(date.year)
-  const month = date.month ? MONTHS[date.month - 1] : null
+export function formatEruptionDate(date: EruptionDateParts, locale: Locale): string {
+  if (date.year === null) return translate(locale, 'format.notSpecified')
+  const year = formatYear(date.year, locale)
+  const month = date.month
+    ? new Intl.DateTimeFormat(intlLocales[locale], { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, date.month - 1, 1))).replace('.', '')
+    : null
   const day = date.day ?? null
-  const uncertainty = date.yearUncertainty ? ` ± ${date.yearUncertainty} lat` : ''
-  const modifier = date.yearModifier === '?' ? 'ok. ' : date.yearModifier ? `${date.yearModifier} ` : ''
+  const uncertainty = date.yearUncertainty ? translate(locale, 'format.uncertaintyYears', { years: date.yearUncertainty }) : ''
+  const modifier = date.yearModifier === '?' ? translate(locale, 'format.circa') : date.yearModifier ? `${date.yearModifier} ` : ''
   return `${modifier}${[day, month, year].filter(Boolean).join(' ')}${uncertainty}`
 }
 
@@ -22,25 +25,28 @@ function utcDate(date: EruptionDateParts): number | null {
   return Date.UTC(date.year, (date.month ?? 1) - 1, date.day ?? 1)
 }
 
-export function formatDuration(eruptions: Eruption): string {
-  const start = utcDate(eruptions.start)
-  const end = utcDate(eruptions.end)
+export function formatDuration(eruption: Eruption, locale: Locale): string {
+  const start = utcDate(eruption.start)
+  const end = utcDate(eruption.end)
   if (start === null || end === null || end < start) {
-    if (eruptions.start.year !== null && eruptions.end.year !== null && eruptions.end.year >= eruptions.start.year) {
-      const years = eruptions.end.year - eruptions.start.year
-      return years === 0 ? 'mniej niż rok (daty przybliżone)' : `około ${years} ${years === 1 ? 'roku' : 'lat'}`
+    if (eruption.start.year !== null && eruption.end.year !== null && eruption.end.year >= eruption.start.year) {
+      const years = eruption.end.year - eruption.start.year
+      return years === 0
+        ? translate(locale, 'format.lessThanYear')
+        : translate(locale, years === 1 ? 'format.approxYears.one' : 'format.approxYears.other', { count: years })
     }
-    return 'Nie określono'
+    return translate(locale, 'format.notSpecified')
   }
   const days = Math.max(1, Math.round((end - start) / 86_400_000) + 1)
-  if (days < 31) return `${days} ${days === 1 ? 'dzień' : 'dni'}`
-  if (days < 730) return `około ${Math.round(days / 30.44)} mies.`
-  return `około ${(days / 365.25).toFixed(1).replace('.0', '')} lat`
+  if (days < 31) return translate(locale, days === 1 ? 'format.days.one' : 'format.days.other', { count: days })
+  if (days < 730) return translate(locale, 'format.approxMonths', { count: Math.round(days / 30.44) })
+  const years = Number((days / 365.25).toFixed(1))
+  return translate(locale, 'format.approxDecimalYears', { count: years.toLocaleString(intlLocales[locale]) })
 }
 
-export function formatPublished(value: string | null): string {
-  if (!value) return 'data nieznana'
-  return new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+export function formatPublished(value: string | null, locale: Locale): string {
+  if (!value) return translate(locale, 'format.unknownDate')
+  return new Intl.DateTimeFormat(intlLocales[locale], { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
 export function formatCoordinates(latitude: number, longitude: number): string {

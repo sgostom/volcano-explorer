@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl'
+import { useI18n, type Locale, type TranslationKey, type TranslationValues } from '../i18n'
 import type { Volcano } from '../models/smithsonian'
 import { formatYear } from '../utils/format'
 
@@ -60,7 +61,7 @@ function volcanoFeatureCollection(volcanoes: Volcano[], selectedNumber: number |
   }
 }
 
-function tooltipContent(volcano: Volcano) {
+function tooltipContent(volcano: Volcano, locale: Locale, t: (key: TranslationKey, values?: TranslationValues) => string) {
   const content = document.createElement('div')
   content.className = 'volcano-tooltip'
 
@@ -69,12 +70,12 @@ function tooltipContent(volcano: Volcano) {
   content.append(name)
 
   const details = document.createElement('span')
-  details.textContent = `${volcano.country ?? 'Kraj nieznany'} · ostatnia erupcja: ${formatYear(volcano.lastEruptionYear)}`
+  details.textContent = `${volcano.country ?? t('common.unknownCountry')} · ${t('map.lastEruption')}: ${formatYear(volcano.lastEruptionYear, locale)}`
   content.append(details)
 
   if (volcano.isInWeeklyReport) {
     const report = document.createElement('em')
-    report.textContent = 'W aktualnym raporcie'
+    report.textContent = t('map.currentReport')
     content.append(report)
   }
 
@@ -191,16 +192,21 @@ function updateViewport(map: maplibregl.Map, volcanoes: Volcano[], filtersActive
 }
 
 export function VolcanoMap({ volcanoes, selected, filtersActive, searchTerm, onSelect }: Props) {
+  const { locale, intlLocale, t, plural } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const volcanoesRef = useRef(volcanoes)
   const filtersActiveRef = useRef(filtersActive)
   const onSelectRef = useRef(onSelect)
   const popupRef = useRef<maplibregl.Popup | null>(null)
+  const localeRef = useRef(locale)
+  const tRef = useRef(t)
 
   volcanoesRef.current = volcanoes
   filtersActiveRef.current = filtersActive
   onSelectRef.current = onSelect
+  localeRef.current = locale
+  tRef.current = t
 
   const data = useMemo(
     () => volcanoFeatureCollection(volcanoes, selected?.number ?? null),
@@ -257,7 +263,7 @@ export function VolcanoMap({ volcanoes, selected, filtersActive, searchTerm, onS
       if (!volcano) return
       popupRef.current
         ?.setLngLat([volcano.longitude, volcano.latitude])
-        .setDOMContent(tooltipContent(volcano))
+        .setDOMContent(tooltipContent(volcano, localeRef.current, tRef.current))
         .addTo(map)
     }
     const handleMouseLeave = () => {
@@ -310,15 +316,15 @@ export function VolcanoMap({ volcanoes, selected, filtersActive, searchTerm, onS
   }, [selected])
 
   return (
-    <div className="map-shell" aria-label="Interaktywna satelitarna mapa wulkanów">
+    <div className="map-shell" aria-label={t('map.aria')}>
       <div ref={containerRef} className="map" />
       <div className="map-title">
-        <span>GLOB · WULKANY HOLOCEŃSKIE</span>
-        <b>{volcanoes.length.toLocaleString('pl-PL')} {volcanoes.length === 1 ? 'widoczny' : 'widocznych'}</b>
+        <span>{t('map.title')}</span>
+        <b>{volcanoes.length.toLocaleString(intlLocale)} {plural('map.visible', volcanoes.length)}</b>
       </div>
-      <div className="map-legend" aria-label="Legenda mapy">
-        <span><i className="dot dot--report" /> W raporcie</span>
-        <span><i className="dot" /> Pozostałe</span>
+      <div className="map-legend" aria-label={t('map.legend')}>
+        <span><i className="dot dot--report" /> {t('map.inReport')}</span>
+        <span><i className="dot" /> {t('map.remaining')}</span>
       </div>
     </div>
   )

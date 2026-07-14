@@ -3,6 +3,7 @@ import { fetchEruptions } from '../api/eruptions'
 import { fetchWeeklyReports } from '../api/reports'
 import { fetchVolcanoes } from '../api/volcanoes'
 import type { ExplorerData } from '../models/smithsonian'
+import { ExplorerError, type ExplorerErrorCode } from '../models/errors'
 import { normalizeEruptions, normalizeVolcanoes } from '../normalizers/geojson'
 import { joinSmithsonianData } from '../normalizers/join'
 import { normalizeRss } from '../normalizers/rss'
@@ -10,7 +11,7 @@ import { normalizeRss } from '../normalizers/rss'
 type State =
   | { status: 'loading'; data: null; error: null }
   | { status: 'success'; data: ExplorerData; error: null }
-  | { status: 'error'; data: null; error: string }
+  | { status: 'error'; data: null; error: { code: ExplorerErrorCode; values: Record<string, string | number> } }
 
 export function useExplorerData() {
   const [state, setState] = useState<State>({ status: 'loading', data: null, error: null })
@@ -41,7 +42,11 @@ export function useExplorerData() {
         },
       })
     } catch (error) {
-      setState({ status: 'error', data: null, error: error instanceof Error ? error.message : 'Nie udało się wczytać danych.' })
+      setState({
+        status: 'error',
+        data: null,
+        error: error instanceof ExplorerError ? { code: error.code, values: error.values } : { code: 'generic', values: {} },
+      })
     }
   }, [])
 

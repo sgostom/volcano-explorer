@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { RawEruptionProperties, RawVolcanoProperties, WfsFeature } from '../models/smithsonian'
 import { compareEruptionsNewestFirst, normalizeEruptionFeature, normalizeVolcanoFeature } from './geojson'
 
-describe('normalizacja Smithsonian WFS', () => {
-  it('bezpiecznie odrzuca rekord wulkanu bez numeru GVP', () => {
+describe('Smithsonian WFS normalization', () => {
+  it('safely rejects a volcano record without a GVP number', () => {
     const feature = { type: 'Feature', properties: { Volcano_Name: 'Test' } } as unknown as WfsFeature<RawVolcanoProperties>
     expect(normalizeVolcanoFeature(feature)).toBeNull()
   })
 
-  it('korzysta ze współrzędnych geometrii, gdy pola są niepełne', () => {
+  it('uses geometry coordinates when property fields are incomplete', () => {
     const feature = {
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [14.999, 37.748] },
@@ -17,7 +17,7 @@ describe('normalizacja Smithsonian WFS', () => {
     expect(normalizeVolcanoFeature(feature)).toMatchObject({ number: 211060, latitude: 37.748, longitude: 14.999 })
   })
 
-  it('zachowuje rzeczywiste pola VEI oraz niepewność daty', () => {
+  it('preserves the actual VEI fields and date uncertainty', () => {
     const feature = {
       type: 'Feature',
       properties: {
@@ -35,7 +35,7 @@ describe('normalizacja Smithsonian WFS', () => {
     expect(normalizeEruptionFeature(feature)).toMatchObject({ vei: 3, veiModifier: '>=', start: { year: 1669, month: 3, day: 11, yearUncertainty: 1 } })
   })
 
-  it('sortuje erupcje także według miesiąca i dnia w tym samym roku', () => {
+  it('also sorts eruptions by month and day within the same year', () => {
     const base = {
       id: '1', volcanoNumber: 1, volcanoName: 'A', eruptionNumber: 1, activityType: null,
       vei: null, veiModifier: null, activityArea: null, activityUnit: null, startEvidenceMethod: null,

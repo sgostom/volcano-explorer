@@ -17,6 +17,10 @@ Vite provides a same-origin `/smithsonian/*` proxy because the Smithsonian sourc
 
 The satellite imagery is provided by [EOxCloudless](https://cloudless.eox.at/) and contains modified Copernicus Sentinel data 2020. The freely accessible 2020 WMTS layer is licensed for non-commercial use under CC BY-NC-SA 4.0 and requires visible attribution, which the map displays automatically. Commercial deployments require an appropriate EOX license or a different licensed basemap provider.
 
+## Interface languages
+
+The interface supports Polish and English through a typed in-memory translation catalog. The initial language follows the browser preference and can be changed from the header. The selection is not persisted in `localStorage` or any other cache.
+
 ## Verification
 
 ```bash

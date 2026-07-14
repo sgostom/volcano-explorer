@@ -1,5 +1,6 @@
 import { RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useId, useMemo, useState, type KeyboardEvent } from 'react'
+import { useI18n } from '../i18n'
 import type { Volcano } from '../models/smithsonian'
 import { normalizeName } from '../normalizers/primitives'
 
@@ -22,17 +23,18 @@ interface Props {
 
 const EMPTY_FILTERS: Filters = { search: '', country: '', region: '', type: '', eruptionPeriod: '' }
 
-function unique(values: Array<string | null>) {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, 'pl'))
+function unique(values: Array<string | null>, locale: string) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, locale))
 }
 
 export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobileOpen, onClose }: Props) {
+  const { intlLocale, t, plural } = useI18n()
   const suggestionListId = useId()
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
-  const countries = unique(volcanoes.map((volcano) => volcano.country))
-  const regions = unique(volcanoes.map((volcano) => volcano.region))
-  const types = unique(volcanoes.map((volcano) => volcano.primaryType))
+  const countries = unique(volcanoes.map((volcano) => volcano.country), intlLocale)
+  const regions = unique(volcanoes.map((volcano) => volcano.region), intlLocale)
+  const types = unique(volcanoes.map((volcano) => volcano.primaryType), intlLocale)
   const update = (key: keyof Filters, value: string) => setFilters({ ...filters, [key]: value })
   const isFiltered = Object.values(filters).some(Boolean)
   const suggestions = useMemo(() => {
@@ -45,10 +47,10 @@ export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobi
         const aStarts = normalizeName(a.name).startsWith(query)
         const bStarts = normalizeName(b.name).startsWith(query)
         if (aStarts !== bStarts) return aStarts ? -1 : 1
-        return a.name.localeCompare(b.name, 'pl')
+        return a.name.localeCompare(b.name, intlLocale)
       })
       .slice(0, 8)
-  }, [filters.search, volcanoes])
+  }, [filters.search, intlLocale, volcanoes])
 
   const chooseSuggestion = (volcano: Volcano) => {
     update('search', volcano.name)
@@ -79,10 +81,10 @@ export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobi
   const showSuggestions = suggestionsOpen && filters.search.trim() && suggestions.length > 0
 
   return (
-    <aside className={`filters-panel ${mobileOpen ? 'filters-panel--open' : ''}`} aria-label="Filtry wulkanów">
+    <aside className={`filters-panel ${mobileOpen ? 'filters-panel--open' : ''}`} aria-label={t('filters.aria')}>
       <div className="panel-heading">
-        <div><SlidersHorizontal size={17} /><span>Eksploruj</span></div>
-        <button className="icon-button mobile-only" onClick={onClose} aria-label="Zamknij filtry"><X size={20} /></button>
+        <div><SlidersHorizontal size={17} /><span>{t('filters.heading')}</span></div>
+        <button className="icon-button mobile-only" onClick={onClose} aria-label={t('filters.close')}><X size={20} /></button>
       </div>
       <div className="search-autocomplete">
         <label className="search-field">
@@ -97,17 +99,17 @@ export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobi
             onFocus={() => setSuggestionsOpen(true)}
             onBlur={() => setSuggestionsOpen(false)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Szukaj po nazwie…"
+            placeholder={t('filters.searchPlaceholder')}
             role="combobox"
             aria-autocomplete="list"
             aria-controls={suggestionListId}
             aria-expanded={Boolean(showSuggestions)}
             aria-activedescendant={activeSuggestion >= 0 ? `${suggestionListId}-${activeSuggestion}` : undefined}
           />
-          {filters.search && <button type="button" onClick={() => update('search', '')} aria-label="Wyczyść wyszukiwanie"><X size={15} /></button>}
+          {filters.search && <button type="button" onClick={() => update('search', '')} aria-label={t('filters.clearSearch')}><X size={15} /></button>}
         </label>
         {showSuggestions && (
-          <div className="search-suggestions" id={suggestionListId} role="listbox" aria-label="Sugerowane wulkany">
+          <div className="search-suggestions" id={suggestionListId} role="listbox" aria-label={t('filters.suggestions')}>
             {suggestions.map((volcano, index) => (
               <button
                 type="button"
@@ -120,25 +122,25 @@ export function FiltersPanel({ volcanoes, filters, setFilters, resultCount, mobi
                 onClick={() => chooseSuggestion(volcano)}
               >
                 <strong>{volcano.name}</strong>
-                <span>{volcano.country ?? 'Kraj nieznany'}</span>
+                <span>{volcano.country ?? t('common.unknownCountry')}</span>
               </button>
             ))}
           </div>
         )}
       </div>
       <div className="filter-fields">
-        <label><span>Kraj</span><select value={filters.country} onChange={(event) => update('country', event.target.value)}><option value="">Wszystkie kraje</option>{countries.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label><span>Region</span><select value={filters.region} onChange={(event) => update('region', event.target.value)}><option value="">Wszystkie regiony</option>{regions.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label><span>Typ wulkanu</span><select value={filters.type} onChange={(event) => update('type', event.target.value)}><option value="">Wszystkie typy</option>{types.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label><span>Ostatnia erupcja</span><select value={filters.eruptionPeriod} onChange={(event) => update('eruptionPeriod', event.target.value)}><option value="">Dowolny rok</option><option value="since-2000">Od 2000</option><option value="1900s">1900–1999</option><option value="1800s">1800–1899</option><option value="older">Przed 1800</option><option value="unknown">Rok nieznany</option></select></label>
+        <label><span>{t('filters.country')}</span><select value={filters.country} onChange={(event) => update('country', event.target.value)}><option value="">{t('filters.allCountries')}</option>{countries.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span>{t('filters.region')}</span><select value={filters.region} onChange={(event) => update('region', event.target.value)}><option value="">{t('filters.allRegions')}</option>{regions.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span>{t('filters.type')}</span><select value={filters.type} onChange={(event) => update('type', event.target.value)}><option value="">{t('filters.allTypes')}</option>{types.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span>{t('filters.lastEruption')}</span><select value={filters.eruptionPeriod} onChange={(event) => update('eruptionPeriod', event.target.value)}><option value="">{t('filters.anyYear')}</option><option value="since-2000">{t('filters.since2000')}</option><option value="1900s">1900–1999</option><option value="1800s">1800–1899</option><option value="older">{t('filters.before1800')}</option><option value="unknown">{t('filters.unknownYear')}</option></select></label>
       </div>
       <div className="filter-summary">
-        <span><strong>{resultCount.toLocaleString('pl-PL')}</strong> {resultCount === 1 ? 'wynik' : 'wyników'}</span>
-        {isFiltered && <button onClick={() => setFilters(EMPTY_FILTERS)}><RotateCcw size={14} /> Wyczyść</button>}
+        <span><strong>{resultCount.toLocaleString(intlLocale)}</strong> {plural('filters.results', resultCount)}</span>
+        {isFiltered && <button onClick={() => setFilters(EMPTY_FILTERS)}><RotateCcw size={14} /> {t('filters.clear')}</button>}
       </div>
       <div className="filter-note">
-        <span>ŹRÓDŁA</span>
-        <p>Dane wulkanologiczne: Smithsonian GVP. Podkład satelitarny: EOxCloudless / Copernicus Sentinel-2. Dane aplikacji pozostają wyłącznie w pamięci.</p>
+        <span>{t('filters.sources')}</span>
+        <p>{t('filters.sourceNote')}</p>
       </div>
     </aside>
   )
