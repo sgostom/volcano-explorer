@@ -22,16 +22,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          release_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --label "autorelease: pending" --limit 1 --json number,headRefOid)"
+          release_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --label "autorelease: pending" --limit 1 --json number)"
           number="$(jq -r '.[0].number // empty' <<< "${release_pr}")"
-          sha="$(jq -r '.[0].headRefOid // empty' <<< "${release_pr}")"
           echo "number=${number}" >> "${GITHUB_OUTPUT}"
+      - name: Update release branch
+        if: steps.release-pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
+        run: gh pr update-branch "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --rebase
+      - name: Capture updated release commit
+        if: steps.release-pr.outputs.number != ''
+        id: release-head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
+        run: |
+          sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
           echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
       - name: Mark release validation as pending
         if: steps.release-pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.release-pr.outputs.sha }}
+          HEAD_SHA: ${{ steps.release-head.outputs.sha }}
         run: gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -f state=pending -f context=ci -f description="Release validation is running"
       - name: Enable squash auto-merge
         if: steps.release-pr.outputs.number != ''
@@ -43,7 +56,7 @@ jobs:
         if: steps.release-pr.outputs.number != ''
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.release-pr.outputs.sha }}
+          ref: ${{ steps.release-head.outputs.sha }}
           persist-credentials: false
       - name: Install pnpm
         if: steps.release-pr.outputs.number != ''
@@ -69,6 +82,6 @@ jobs:
         if: always() && steps.release-pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.release-pr.outputs.sha }}
+          HEAD_SHA: ${{ steps.release-head.outputs.sha }}
           VALIDATION_STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
         run: gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -f state="${VALIDATION_STATE}" -f context=ci -f description="Release validation ${VALIDATION_STATE}"
