@@ -15,7 +15,7 @@ Vite provides a same-origin `/smithsonian/*` proxy because the Smithsonian sourc
 
 ## GitHub Pages deployment
 
-The `Deploy GitHub Pages` workflow downloads and validates the three Smithsonian sources, runs the tests, builds the application, and deploys the result. It runs after pushes to `main`, can be started manually, and refreshes the snapshot every Monday at 03:17 UTC. If downloading, validation, testing, or building fails, the deployment job does not run and the previously published site remains available.
+The `Deploy GitHub Pages` workflow downloads and validates the three Smithsonian sources, runs the tests, builds the application, and deploys the result. It runs after pushes to `main`, can be started manually, and refreshes the snapshot every Monday at 03:17 UTC. A manual run accepts an optional semantic version and deploys its `vX.Y.Z` tag; an empty value deploys `main`. If downloading, validation, testing, or building fails, the deployment job does not run and the previously published site remains available.
 
 The generated snapshot is included only in the Pages artifact and is ignored by Git. Its manifest records the retrieval time and exact Smithsonian source URLs; the interface displays that retrieval time. Build the Pages version locally with:
 
@@ -38,7 +38,7 @@ The project follows Semantic Versioning. Pull requests are merged manually with 
 - `fix:` creates a patch release, such as `1.0.0` to `1.0.1`.
 - `feat:` creates a minor release, such as `1.0.0` to `1.1.0`.
 - A `BREAKING CHANGE:` footer or `!` after the commit type creates a major release, such as `1.0.0` to `2.0.0`.
-- Other pull request title types create a patch release.
+- Other pull request title types, including `ci:`, `docs:`, `test:`, `chore:`, and `build:`, do not create a version commit or release.
 
 The release commit uses `chore: release vX.Y.Z (PR #N)` so every version has a direct reference to its source pull request. The repository permits only squash merging and requires pull requests for normal changes to `main`. A dedicated write-enabled deploy key is the only ruleset bypass and is stored as the `VERSION_BUMP_DEPLOY_KEY` Actions secret, allowing the workflow to push only the automated version commit without another pull request.
 
