@@ -40,7 +40,7 @@ The project follows Semantic Versioning. Pull requests are merged manually with 
 - A `BREAKING CHANGE:` footer or `!` after the commit type creates a major release, such as `1.0.0` to `2.0.0`.
 - Other pull request title types create a patch release.
 
-The release commit uses `chore: release vX.Y.Z (PR #N)` so every version has a direct reference to its source pull request. The repository permits only squash merging and requires pull requests for normal changes to `main`. A repository ruleset grants the official GitHub Actions app a narrow bypass so only the automated version commit can be pushed without another pull request.
+The release commit uses `chore: release vX.Y.Z (PR #N)` so every version has a direct reference to its source pull request. The repository permits only squash merging and requires pull requests for normal changes to `main`. A dedicated write-enabled deploy key is the only ruleset bypass and is stored as the `VERSION_BUMP_DEPLOY_KEY` Actions secret, allowing the workflow to push only the automated version commit without another pull request.
 
 ## Verification
 
