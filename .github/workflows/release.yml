@@ -1,157 +1,94 @@
-name: Release
+name: Version and release
 
 on:
-  push:
-    branches: [main]
+  pull_request_target:
+    types: [closed]
   workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Pull request number to recover or republish
+        required: true
+        type: number
 
 permissions:
   actions: write
   contents: write
-  pull-requests: write
-  statuses: write
+
+concurrency:
+  group: version-main
+  cancel-in-progress: false
 
 jobs:
-  release-please:
+  release:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request_number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_BODY: ${{ github.event.pull_request.body }}
     steps:
-      - name: Create or update release
-        id: release
-        uses: googleapis/release-please-action@v4
-      - name: Locate pending release pull request
-        id: release-pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_PRS: ${{ steps.release.outputs.prs }}
-        run: |
-          number="$(jq -r '.[0].number // empty' <<< "${RELEASE_PRS:-[]}")"
-
-          if [[ -z "${number}" ]]; then
-            release_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --base main --state open --label "autorelease: pending" --limit 1 --json number)"
-            number="$(jq -r '.[0].number // empty' <<< "${release_pr}")"
-          fi
-
-          echo "number=${number}" >> "${GITHUB_OUTPUT}"
-      - name: Update release branch
-        if: steps.release-pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
-        run: gh pr update-branch "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --rebase
-      - name: Capture updated release commit
-        if: steps.release-pr.outputs.number != ''
-        id: release-head
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
-        run: |
-          base_sha="${GITHUB_SHA}"
-
-          for attempt in {1..30}; do
-            sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
-            behind_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${base_sha}...${sha}" --jq .behind_by)"
-
-            if [[ "${behind_by}" == "0" ]]; then
-              sleep 2
-              stable_sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
-
-              if [[ "${stable_sha}" == "${sha}" ]]; then
-                echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
-                exit 0
-              fi
-            fi
-
-            echo "Waiting for release branch update (attempt ${attempt}/30)"
-            sleep 2
-          done
-
-          echo "Release branch did not become current and stable" >&2
-          exit 1
-      - name: Mark release validation as pending
-        if: steps.release-pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.release-head.outputs.sha }}
-        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -f state=pending -f context=ci -f description="Release validation is running"
-      - name: Enable squash auto-merge
-        if: steps.release-pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
-        run: gh pr merge "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --auto --squash
-      - name: Check out release candidate
-        if: steps.release-pr.outputs.number != ''
+      - name: Check out main
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.release-head.outputs.sha }}
-          persist-credentials: false
-      - name: Install pnpm
-        if: steps.release-pr.outputs.number != ''
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.12.0
+          ref: main
+          fetch-depth: 0
       - name: Set up Node.js
-        if: steps.release-pr.outputs.number != ''
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - name: Install dependencies
-        if: steps.release-pr.outputs.number != ''
-        run: pnpm install --frozen-lockfile
-      - name: Run tests
-        if: steps.release-pr.outputs.number != ''
-        run: pnpm test
-      - name: Build application
-        if: steps.release-pr.outputs.number != ''
-        run: pnpm build
-      - name: Report release validation result
-        if: always() && steps.release-pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
-          TESTED_SHA: ${{ steps.release-head.outputs.sha }}
-          VALIDATION_STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+      - name: Resolve pull request metadata
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          current_sha="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json headRefOid --jq .headRefOid)"
-          state="${VALIDATION_STATE}"
-          description="Release validation ${state}"
+          pr="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json title,body,state,mergedAt)"
 
-          if [[ -z "${TESTED_SHA}" || "${current_sha}" != "${TESTED_SHA}" ]]; then
-            state="failure"
-            description="Release head changed during validation"
-          fi
-
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${current_sha}" -f state="${state}" -f context=ci -f description="${description}"
-
-          if [[ "${state}" != "success" ]]; then
+          if [[ "$(jq -r .state <<< "${pr}")" != "MERGED" ]]; then
+            echo "Pull request #${PR_NUMBER} is not merged" >&2
             exit 1
           fi
-      - name: Continue after automatic merge
-        if: steps.release-pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.release-pr.outputs.number }}
+
+          echo "PR_TITLE_BASE64=$(jq -r .title <<< "${pr}" | base64 -w0)" >> "${GITHUB_ENV}"
+          echo "PR_BODY_BASE64=$(jq -r '.body // ""' <<< "${pr}" | base64 -w0)" >> "${GITHUB_ENV}"
+      - name: Synchronize main
+        run: git pull --ff-only origin main
+      - name: Resolve version
+        id: version
         run: |
-          for attempt in {1..30}; do
-            pr="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --json state,mergeCommit)"
-            state="$(jq -r .state <<< "${pr}")"
-            merge_sha="$(jq -r '.mergeCommit.oid // empty' <<< "${pr}")"
+          existing_subject="$(git log --format=%s --fixed-strings --grep="(PR #${PR_NUMBER})" -1)"
 
-            if [[ "${state}" == "MERGED" && -n "${merge_sha}" ]]; then
-              main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
-              behind_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${merge_sha}...${main_sha}" --jq .behind_by)"
+          if [[ "${existing_subject}" =~ ^chore:\ release\ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            version="${BASH_REMATCH[1]}"
+            changed=false
+          else
+            version="$(node scripts/bump-version.mjs)"
+            changed=true
+          fi
 
-              if [[ "${behind_by}" == "0" ]]; then
-                gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main
-                gh workflow run deploy-pages.yml --repo "${GITHUB_REPOSITORY}" --ref main
-                exit 0
-              fi
-            fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "changed=${changed}" >> "${GITHUB_OUTPUT}"
+      - name: Commit version bump
+        if: steps.version.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: release v${VERSION} (PR #${PR_NUMBER})"
+          git push origin HEAD:main
+      - name: Create tag and GitHub Release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="v${VERSION}"
 
-            echo "Waiting for automatic release merge (attempt ${attempt}/30)"
-            sleep 2
-          done
+          if ! git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+            git tag "${tag}"
+            git push origin "${tag}"
+          fi
 
-          echo "Automatic release merge did not complete" >&2
-          exit 1
+          if ! gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${tag}" --repo "${GITHUB_REPOSITORY}" --target main --generate-notes --title "${tag}"
+          fi
+      - name: Deploy versioned application
+        run: gh workflow run deploy-pages.yml --repo "${GITHUB_REPOSITORY}" --ref main
