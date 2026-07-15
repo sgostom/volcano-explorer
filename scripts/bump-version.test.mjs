@@ -12,9 +12,16 @@ describe('determineBump', () => {
     expect(determineBump('fix: migrate API', 'BREAKING CHANGE: new response format')).toBe('major')
   })
 
-  it('uses patch releases for other pull requests', () => {
+  it('uses patch releases for fixes', () => {
     expect(determineBump('fix: load mobile images')).toBe('patch')
-    expect(determineBump('ci: update workflow')).toBe('patch')
+  })
+
+  it('skips releases for non-product changes', () => {
+    expect(determineBump('ci: update workflow')).toBeNull()
+    expect(determineBump('docs: explain versioning')).toBeNull()
+    expect(determineBump('test: cover filters')).toBeNull()
+    expect(determineBump('chore: update metadata')).toBeNull()
+    expect(determineBump('build: update tooling')).toBeNull()
   })
 })
 

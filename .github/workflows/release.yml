@@ -60,13 +60,22 @@ jobs:
           if [[ "${existing_subject}" =~ ^chore:\ release\ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
             version="${BASH_REMATCH[1]}"
             changed=false
+            release=true
           else
             version="$(node scripts/bump-version.mjs)"
-            changed=true
+
+            if [[ -n "${version}" ]]; then
+              changed=true
+              release=true
+            else
+              changed=false
+              release=false
+            fi
           fi
 
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "changed=${changed}" >> "${GITHUB_OUTPUT}"
+          echo "release=${release}" >> "${GITHUB_OUTPUT}"
       - name: Commit version bump
         if: steps.version.outputs.changed == 'true'
         env:
@@ -78,6 +87,7 @@ jobs:
           git commit -m "chore: release v${VERSION} (PR #${PR_NUMBER})"
           git push origin HEAD:main
       - name: Create tag and GitHub Release
+        if: steps.version.outputs.release == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -92,4 +102,7 @@ jobs:
             gh release create "${tag}" --repo "${GITHUB_REPOSITORY}" --target main --generate-notes --title "${tag}"
           fi
       - name: Deploy versioned application
-        run: gh workflow run deploy-pages.yml --repo "${GITHUB_REPOSITORY}" --ref main
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh workflow run deploy-pages.yml --repo "${GITHUB_REPOSITORY}" --ref main -f version="${VERSION}"

@@ -7,7 +7,8 @@ export function determineBump(title, body = '') {
 
   if (breaking) return 'major'
   if (conventional?.[1]?.toLowerCase() === 'feat') return 'minor'
-  return 'patch'
+  if (conventional?.[1]?.toLowerCase() === 'fix') return 'patch'
+  return null
 }
 
 export function incrementVersion(version, bump) {
@@ -30,7 +31,9 @@ export async function bumpPackageVersion({
   body = decodeMetadata('PR_BODY'),
 } = {}) {
   const packageJson = JSON.parse(await readFile(packagePath, 'utf8'))
-  const version = incrementVersion(packageJson.version, determineBump(title, body))
+  const bump = determineBump(title, body)
+  if (bump === null) return null
+  const version = incrementVersion(packageJson.version, bump)
   packageJson.version = version
   await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
   return version
@@ -42,5 +45,5 @@ function decodeMetadata(name) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.stdout.write(await bumpPackageVersion())
+  process.stdout.write(await bumpPackageVersion() ?? '')
 }
