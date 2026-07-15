@@ -33,14 +33,14 @@ The interface supports Polish and English through a typed in-memory translation 
 
 ## Versioning and releases
 
-The project follows Semantic Versioning and uses Release Please to maintain the version in `package.json`, generate `CHANGELOG.md`, create version tags, and publish GitHub Releases. Commits merged into `main` determine the next version:
+The project follows Semantic Versioning. Pull requests are merged manually with the squash method. After a pull request reaches `main`, the `Version and release` workflow adds a separate version commit directly to `main`, creates the matching version tag and GitHub Release, and redeploys GitHub Pages. The pull request title determines the next version:
 
 - `fix:` creates a patch release, such as `1.0.0` to `1.0.1`.
 - `feat:` creates a minor release, such as `1.0.0` to `1.1.0`.
 - A `BREAKING CHANGE:` footer or `!` after the commit type creates a major release, such as `1.0.0` to `2.0.0`.
-- Other Conventional Commit types can appear in the changelog but do not independently trigger a release.
+- Other pull request title types create a patch release.
 
-Release Please opens or updates a release pull request after qualifying commits reach `main`. The release workflow marks its required `ci` status as pending, enables native GitHub auto-merge, and validates the release candidate. After the tests and production build pass, the successful status lets GitHub squash-merge the release PR and Release Please creates the version tag and GitHub Release. The repository permits only squash merging and requires pull requests for all changes to `main`.
+The release commit uses `chore: release vX.Y.Z (PR #N)` so every version has a direct reference to its source pull request. The repository permits only squash merging and requires pull requests for normal changes to `main`. A dedicated write-enabled deploy key is the only ruleset bypass and is stored as the `VERSION_BUMP_DEPLOY_KEY` Actions secret, allowing the workflow to push only the automated version commit without another pull request.
 
 ## Verification
 
