@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import type { FeatureCollection, Point } from 'geojson'
 import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl'
 import { useI18n, type Locale, type TranslationKey, type TranslationValues } from '../i18n'
 import type { Volcano } from '../models/smithsonian'
@@ -46,7 +47,7 @@ const SATELLITE_STYLE: StyleSpecification = {
   },
 }
 
-function volcanoFeatureCollection(volcanoes: Volcano[], selectedNumber: number | null): GeoJSON.FeatureCollection<GeoJSON.Point> {
+function volcanoFeatureCollection(volcanoes: Volcano[], selectedNumber: number | null): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: volcanoes.map((volcano) => ({
@@ -84,7 +85,7 @@ function tooltipContent(volcano: Volcano, locale: Locale, t: (key: TranslationKe
 
 function ensureVolcanoLayers(
   map: maplibregl.Map,
-  data: GeoJSON.FeatureCollection<GeoJSON.Point>,
+  data: FeatureCollection<Point>,
 ) {
   let source = map.getSource('volcanoes') as GeoJSONSource | undefined
 
