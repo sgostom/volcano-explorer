@@ -78,7 +78,7 @@ export default function App() {
       </header>
       <div className="workspace">
         <FiltersPanel volcanoes={data.volcanoes} filters={filters} setFilters={setFilters} resultCount={filtered.length} mobileOpen={mobileFilters} onClose={() => setMobileFilters(false)} />
-        <main className="map-column">
+        <main id="volcano-map" className="map-column" tabIndex={-1}>
           {filtered.length > 0 ? <VolcanoMap volcanoes={filtered} selected={selected} filtersActive={filtersActive} searchTerm={filters.search} onSelect={selectVolcano} /> : <div className="map-empty"><span>0</span><h2>{t('map.emptyTitle')}</h2><p>{t('map.emptyBody')}</p><button onClick={() => setFilters(EMPTY_FILTERS)}>{t('map.clearFilters')}</button></div>}
           <a className="mobile-bulletin-link" href="#weekly-reports"><Radio size={15} /> {t('reports.bulletin')}</a>
         </main>

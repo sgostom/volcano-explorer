@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, Clock3, Radio, Unlink } from 'lucide-react'
+import { Activity, ArrowUpRight, Clock3, Radio, Unlink, X } from 'lucide-react'
 import type { Volcano, WeeklyReport } from '../models/smithsonian'
 import { useI18n } from '../i18n'
 import { formatPublished } from '../utils/format'
@@ -16,6 +16,7 @@ export function ReportsPanel({ reports, publishedAt, snapshotFetchedAt, onSelect
   const { locale, t } = useI18n()
   return (
     <aside id="weekly-reports" className="reports-panel" aria-label={t('reports.aria')} tabIndex={-1}>
+      <a className="mobile-bulletin-close" href="#volcano-map" aria-label={t('reports.close')}><X size={18} /></a>
       <div className="reports-header">
         <div className="eyebrow"><Radio size={14} /> {t('reports.bulletin')}</div>
         <h2>{t('reports.title')}</h2>
