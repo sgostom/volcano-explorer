@@ -38,6 +38,7 @@ a { color: inherit; }
 .topbar nav a { text-decoration: none; color: #c7c0b5; }
 .topbar nav a:hover { color: var(--ember-soft); }
 .mobile-filter-button { display: none; background: #202220; border: 1px solid var(--line); padding: 8px 12px; border-radius: 5px; align-items: center; gap: 7px; }
+.mobile-bulletin-link, .mobile-bulletin-close { display: none; }
 
 .workspace { min-height: 0; flex: 1; display: grid; grid-template-columns: 290px minmax(360px, 1fr) 350px; position: relative; }
 .filters-panel, .reports-panel { background: var(--panel); min-height: 0; }
@@ -213,12 +214,17 @@ a { color: inherit; }
   .dataset-status, .topbar nav { display: none; }
   .language-switch { margin-left: auto; }
   .mobile-filter-button { display: flex; }
+  .mobile-bulletin-link { position: absolute; right: 14px; bottom: 62px; z-index: 600; display: flex; align-items: center; gap: 7px; padding: 10px 12px; border: 1px solid rgba(255,156,114,.45); border-radius: 4px; background: rgba(17,18,18,.9); box-shadow: 0 8px 28px rgba(0,0,0,.35); color: var(--ember-soft); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-decoration: none; touch-action: manipulation; }
+  .mobile-bulletin-link:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+  .mobile-bulletin-close { position: sticky; top: 74px; z-index: 20; align-self: flex-end; flex: 0 0 auto; display: grid; width: 38px; height: 38px; margin: 14px 14px -52px 0; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(12,13,13,.88); box-shadow: 0 8px 24px rgba(0,0,0,.38); color: var(--cream); place-items: center; text-decoration: none; touch-action: manipulation; }
+  .mobile-bulletin-close:focus-visible { outline: 2px solid var(--ember-soft); outline-offset: 3px; }
   .workspace { display: block; min-height: 0; }
-  .map-column { height: calc(100vh - 60px); min-height: 530px; }
+  .map-column { height: calc(100vh - 60px); min-height: 530px; scroll-margin-top: 60px; }
   .filters-panel { position: fixed; inset: 60px 0 0; z-index: 1200; width: min(340px, 88vw); transform: translateX(-102%); transition: transform .22s ease; box-shadow: 22px 0 60px rgba(0,0,0,.55); overflow: auto; }
   .filters-panel--open { transform: none; }
   .mobile-only { display: grid; }
-  .reports-panel { border-left: 0; border-top: 1px solid var(--line); }
+  .reports-panel { border-left: 0; border-top: 1px solid var(--line); scroll-margin-top: 60px; }
+  .reports-header { padding-right: 68px; }
   .report-list { grid-template-columns: 1fr; }
   .drawer-scrim { inset: 60px 0 0; }
   .detail-drawer { top: 60px; width: 100vw; }
