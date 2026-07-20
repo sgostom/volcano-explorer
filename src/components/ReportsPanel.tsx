@@ -15,7 +15,7 @@ interface Props {
 export function ReportsPanel({ reports, publishedAt, snapshotFetchedAt, onSelectVolcano, volcanoesByNumber }: Props) {
   const { locale, t } = useI18n()
   return (
-    <aside className="reports-panel" aria-label={t('reports.aria')}>
+    <aside id="weekly-reports" className="reports-panel" aria-label={t('reports.aria')} tabIndex={-1}>
       <div className="reports-header">
         <div className="eyebrow"><Radio size={14} /> {t('reports.bulletin')}</div>
         <h2>{t('reports.title')}</h2>

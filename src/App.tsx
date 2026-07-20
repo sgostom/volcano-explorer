@@ -1,4 +1,4 @@
-import { AlertTriangle, Database, Filter, Flame, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Database, Filter, Flame, Radio, RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { FiltersPanel, EMPTY_FILTERS, type Filters } from './components/FiltersPanel'
 import { ReportsPanel } from './components/ReportsPanel'
@@ -80,6 +80,7 @@ export default function App() {
         <FiltersPanel volcanoes={data.volcanoes} filters={filters} setFilters={setFilters} resultCount={filtered.length} mobileOpen={mobileFilters} onClose={() => setMobileFilters(false)} />
         <main className="map-column">
           {filtered.length > 0 ? <VolcanoMap volcanoes={filtered} selected={selected} filtersActive={filtersActive} searchTerm={filters.search} onSelect={selectVolcano} /> : <div className="map-empty"><span>0</span><h2>{t('map.emptyTitle')}</h2><p>{t('map.emptyBody')}</p><button onClick={() => setFilters(EMPTY_FILTERS)}>{t('map.clearFilters')}</button></div>}
+          <a className="mobile-bulletin-link" href="#weekly-reports"><Radio size={15} /> {t('reports.bulletin')}</a>
         </main>
         <ReportsPanel reports={data.reports} publishedAt={data.feedPublishedAt} snapshotFetchedAt={data.snapshotFetchedAt} onSelectVolcano={selectVolcano} volcanoesByNumber={volcanoesByNumber} />
         {selected && <><div className="drawer-scrim" onClick={() => setSelected(null)} /><VolcanoDetails key={selected.number} volcano={selected} onClose={() => setSelected(null)} /></>}
