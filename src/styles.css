@@ -236,6 +236,11 @@ a { color: inherit; }
   .map-legend { bottom: 15px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 }
 
+@media (max-width: 700px), (pointer: coarse) {
+  /* Avoid iOS focus zoom when typing, including in landscape. */
+  .search-field input { font-size: 16px; }
+}
+
 @media (max-width: 420px) {
   .detail-stats { grid-template-columns: 1fr 1fr; }
   .detail-stats > div:last-child { grid-column: 1 / -1; }
